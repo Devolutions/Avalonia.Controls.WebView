@@ -195,14 +195,14 @@ internal abstract class GtkWebViewAdapter : IWebViewAdapterWithFocus, IGtkWebVie
     /// </summary>
     protected virtual bool ToplevelIsOffscreen => false;
 
-    public virtual void Focus() => RunOnWebView(handle =>
+    public void Focus() => RunOnWebView(handle =>
     {
         gtk_widget_grab_focus(handle);
         gtk_widget_has_focus(handle);
         SendToplevelFocusChange(true);
     });
 
-    public virtual void ResignFocus() => RunOnWebView(_ => SendToplevelFocusChange(false));
+    public void ResignFocus() => RunOnWebView(_ => SendToplevelFocusChange(false));
 
     private unsafe void SendToplevelFocusChange(bool focusIn)
     {
