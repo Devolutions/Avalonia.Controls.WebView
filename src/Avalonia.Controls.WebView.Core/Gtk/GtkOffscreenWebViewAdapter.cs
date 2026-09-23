@@ -151,48 +151,7 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
         });
     }
 
-    public override void Focus()
-    {
-        if (!_experimentalOffscreen)
-        {
-            base.Focus();
-            return;
-        }
-
-        RunOnGlibThreadAsync(() =>
-        {
-            if (_windowHandle == IntPtr.Zero)
-                return;
-
-            gtk_widget_grab_focus(WebViewHandle);
-            SendToplevelFocusChange(true);
-        });
-    }
-
-    public override void ResignFocus()
-    {
-        if (!_experimentalOffscreen)
-        {
-            base.ResignFocus();
-            return;
-        }
-
-        RunOnGlibThreadAsync(() =>
-        {
-            if (_windowHandle != IntPtr.Zero)
-                SendToplevelFocusChange(false);
-        });
-    }
-
-    private void SendToplevelFocusChange(bool focusIn)
-    {
-        if (gtk_widget_get_window(_windowHandle) == IntPtr.Zero)
-            return;
-
-        using var state = new EventSendState(GdkEventType.GDK_FOCUS_CHANGE, _windowHandle);
-        state.Event->focus_change.@in = (short)(focusIn ? 1 : 0);
-        gtk_widget_send_focus_change(_windowHandle, new IntPtr(state.Event));
-    }
+    protected override IntPtr ToplevelHandle => _windowHandle;
 
     public bool KeyInput(bool press, PhysicalKey physical, string? _, KeyModifiers modifiers)
     {
@@ -387,33 +346,4 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
         return False;
     }
 
-    private readonly ref struct EventSendState : IDisposable
-    {
-        private readonly IntPtr _evPtr;
-
-        public EventSendState(GdkEventType eventType, IntPtr handle)
-        {
-            _evPtr = gdk_event_new(eventType);
-            var ev = (GdkEvent*)_evPtr.ToPointer();
-            ev->any.window = gtk_widget_get_window(handle); // gdk window
-            ev->any.send_event = 1;
-            g_object_ref(ev->any.window);
-        }
-
-        public GdkEvent* Event => (GdkEvent*)_evPtr.ToPointer();
-
-        public bool Send()
-        {
-            gdk_event_put(_evPtr);
-            return true;
-        }
-
-        public void Dispose()
-        {
-            if (_evPtr != IntPtr.Zero)
-            {
-                gdk_event_free(_evPtr);
-            }
-        }
-    }
 }

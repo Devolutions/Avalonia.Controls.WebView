@@ -185,13 +185,60 @@ internal abstract class GtkWebViewAdapter : IWebViewAdapterWithFocus, IGtkWebVie
     public event EventHandler? GotFocus;
     public event EventHandler<IWebViewAdapterWithFocus.LostFocusDirection>? LostFocus;
 
-    public virtual void Focus() => RunOnWebView(static handle =>
+    /// <summary>
+    /// The GTK toplevel holding the web view, or zero when the adapter has none.
+    /// </summary>
+    protected virtual IntPtr ToplevelHandle => IntPtr.Zero;
+
+    public virtual void Focus() => RunOnWebView(handle =>
     {
         gtk_widget_grab_focus(handle);
         gtk_widget_has_focus(handle);
+        SendToplevelFocusChange(true);
     });
 
-    public virtual void ResignFocus() { }
+    public virtual void ResignFocus() => RunOnWebView(_ => SendToplevelFocusChange(false));
+
+    private unsafe void SendToplevelFocusChange(bool focusIn)
+    {
+        var toplevel = ToplevelHandle;
+        if (toplevel == IntPtr.Zero || gtk_widget_get_window(toplevel) == IntPtr.Zero)
+            return;
+
+        using var state = new EventSendState(GdkEventType.GDK_FOCUS_CHANGE, toplevel);
+        state.Event->focus_change.@in = (short)(focusIn ? 1 : 0);
+        gtk_widget_send_focus_change(toplevel, new IntPtr(state.Event));
+    }
+
+    protected readonly unsafe ref struct EventSendState : IDisposable
+    {
+        private readonly IntPtr _evPtr;
+
+        public EventSendState(GdkEventType eventType, IntPtr handle)
+        {
+            _evPtr = gdk_event_new(eventType);
+            var ev = (GdkEvent*)_evPtr.ToPointer();
+            ev->any.window = gtk_widget_get_window(handle); // gdk window
+            ev->any.send_event = 1;
+            g_object_ref(ev->any.window);
+        }
+
+        public GdkEvent* Event => (GdkEvent*)_evPtr.ToPointer();
+
+        public bool Send()
+        {
+            gdk_event_put(_evPtr);
+            return true;
+        }
+
+        public void Dispose()
+        {
+            if (_evPtr != IntPtr.Zero)
+            {
+                gdk_event_free(_evPtr);
+            }
+        }
+    }
 
     public bool GoBack()
     {
