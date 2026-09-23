@@ -190,6 +190,11 @@ internal abstract class GtkWebViewAdapter : IWebViewAdapterWithFocus, IGtkWebVie
     /// </summary>
     protected virtual IntPtr ToplevelHandle => IntPtr.Zero;
 
+    /// <summary>
+    /// True when <see cref="ToplevelHandle"/> is a GtkOffscreenWindow, whose GdkWindow has no native window behind it.
+    /// </summary>
+    protected virtual bool ToplevelIsOffscreen => false;
+
     public virtual void Focus() => RunOnWebView(handle =>
     {
         gtk_widget_grab_focus(handle);
@@ -205,11 +210,32 @@ internal abstract class GtkWebViewAdapter : IWebViewAdapterWithFocus, IGtkWebVie
         if (toplevel == IntPtr.Zero || gtk_widget_get_window(toplevel) == IntPtr.Zero)
             return;
 
+        if (ToplevelIsOffscreen && IsX11Display())
+        {
+            return;
+        }
+
         using var state = new EventSendState(GdkEventType.GDK_FOCUS_CHANGE, toplevel);
         state.Event->focus_change.@in = (short)(focusIn ? 1 : 0);
         gtk_widget_send_focus_change(toplevel, new IntPtr(state.Event));
     }
 
+    private static bool IsX11Display()
+    {
+        var display = gdk_display_get_default();
+        if (display == IntPtr.Zero)
+            return false;
+
+        try
+        {
+            return g_type_check_instance_is_a(display, gdk_x11_display_get_type());
+        }
+        catch (EntryPointNotFoundException)
+        {
+            return false;
+        }
+    }
+    
     protected readonly unsafe ref struct EventSendState : IDisposable
     {
         private readonly IntPtr _evPtr;

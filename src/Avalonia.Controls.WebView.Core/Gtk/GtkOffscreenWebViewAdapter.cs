@@ -153,6 +153,8 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
 
     protected override IntPtr ToplevelHandle => _windowHandle;
 
+    protected override bool ToplevelIsOffscreen => _experimentalOffscreen;
+
     public bool KeyInput(bool press, PhysicalKey physical, string? _, KeyModifiers modifiers)
     {
         var keycode = KeyTransform.ScanCodeFromPhysicalKey(physical);

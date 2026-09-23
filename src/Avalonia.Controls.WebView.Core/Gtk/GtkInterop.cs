@@ -361,6 +361,13 @@ internal static unsafe partial class GtkInterop
     [DllImport(LibGtk)]
     public static extern bool gtk_widget_send_focus_change(IntPtr widget, IntPtr gdkEvent);
 
+    [DllImport(LibGdk)]
+    internal static extern IntPtr gdk_x11_display_get_type();
+
+    [DllImport(LibGObject)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool g_type_check_instance_is_a(IntPtr instance, IntPtr ifaceType);
+
     [DllImport(LibGtk)]
     public static extern void gtk_main_do_event(IntPtr gdkEvent);
 
