@@ -359,6 +359,9 @@ internal static unsafe partial class GtkInterop
     public static extern bool gtk_widget_event(IntPtr widget, IntPtr gdkEvent);
 
     [DllImport(LibGtk)]
+    public static extern bool gtk_widget_send_focus_change(IntPtr widget, IntPtr gdkEvent);
+
+    [DllImport(LibGtk)]
     public static extern void gtk_main_do_event(IntPtr gdkEvent);
 
     [DllImport(LibGdk)]

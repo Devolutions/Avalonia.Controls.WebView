@@ -185,13 +185,13 @@ internal abstract class GtkWebViewAdapter : IWebViewAdapterWithFocus, IGtkWebVie
     public event EventHandler? GotFocus;
     public event EventHandler<IWebViewAdapterWithFocus.LostFocusDirection>? LostFocus;
 
-    public void Focus() => RunOnWebView(static handle =>
+    public virtual void Focus() => RunOnWebView(static handle =>
     {
         gtk_widget_grab_focus(handle);
         gtk_widget_has_focus(handle);
     });
 
-    public void ResignFocus() { }
+    public virtual void ResignFocus() { }
 
     public bool GoBack()
     {

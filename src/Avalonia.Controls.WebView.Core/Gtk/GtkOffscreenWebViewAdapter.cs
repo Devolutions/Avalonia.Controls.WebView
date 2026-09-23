@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -149,6 +149,49 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
             else
                 gtk_window_resize(_windowHandle, _sizeRequest.Width, _sizeRequest.Height);
         });
+    }
+
+    public override void Focus()
+    {
+        if (!_experimentalOffscreen)
+        {
+            base.Focus();
+            return;
+        }
+
+        RunOnGlibThreadAsync(() =>
+        {
+            if (_windowHandle == IntPtr.Zero)
+                return;
+
+            gtk_widget_grab_focus(WebViewHandle);
+            SendToplevelFocusChange(true);
+        });
+    }
+
+    public override void ResignFocus()
+    {
+        if (!_experimentalOffscreen)
+        {
+            base.ResignFocus();
+            return;
+        }
+
+        RunOnGlibThreadAsync(() =>
+        {
+            if (_windowHandle != IntPtr.Zero)
+                SendToplevelFocusChange(false);
+        });
+    }
+
+    private void SendToplevelFocusChange(bool focusIn)
+    {
+        if (gtk_widget_get_window(_windowHandle) == IntPtr.Zero)
+            return;
+
+        using var state = new EventSendState(GdkEventType.GDK_FOCUS_CHANGE, _windowHandle);
+        state.Event->focus_change.@in = (short)(focusIn ? 1 : 0);
+        gtk_widget_send_focus_change(_windowHandle, new IntPtr(state.Event));
     }
 
     public bool KeyInput(bool press, PhysicalKey physical, string? _, KeyModifiers modifiers)
