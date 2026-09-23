@@ -41,7 +41,10 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
 
     public PixelFormat BufferPixelFormat => PixelFormats.Rgba8888;
     public AlphaFormat BufferAlphaFormat => AlphaFormat.Unpremul;
-
+    
+    protected override IntPtr ToplevelHandle => _windowHandle;
+    protected override bool ToplevelIsOffscreen => _experimentalOffscreen;
+    
     public Task UpdateWriteableBitmap(PixelSize _, FrameChainBase<WriteableBitmap, PixelSize>.IProducer producer)
     {
         if (_windowHandle == IntPtr.Zero)
@@ -150,10 +153,6 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
                 gtk_window_resize(_windowHandle, _sizeRequest.Width, _sizeRequest.Height);
         });
     }
-
-    protected override IntPtr ToplevelHandle => _windowHandle;
-
-    protected override bool ToplevelIsOffscreen => _experimentalOffscreen;
 
     public bool KeyInput(bool press, PhysicalKey physical, string? _, KeyModifiers modifiers)
     {

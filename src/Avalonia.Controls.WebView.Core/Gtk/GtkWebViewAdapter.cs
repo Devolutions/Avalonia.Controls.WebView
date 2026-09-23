@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
@@ -233,36 +233,6 @@ internal abstract class GtkWebViewAdapter : IWebViewAdapterWithFocus, IGtkWebVie
         catch (EntryPointNotFoundException)
         {
             return false;
-        }
-    }
-    
-    protected readonly unsafe ref struct EventSendState : IDisposable
-    {
-        private readonly IntPtr _evPtr;
-
-        public EventSendState(GdkEventType eventType, IntPtr handle)
-        {
-            _evPtr = gdk_event_new(eventType);
-            var ev = (GdkEvent*)_evPtr.ToPointer();
-            ev->any.window = gtk_widget_get_window(handle); // gdk window
-            ev->any.send_event = 1;
-            g_object_ref(ev->any.window);
-        }
-
-        public GdkEvent* Event => (GdkEvent*)_evPtr.ToPointer();
-
-        public bool Send()
-        {
-            gdk_event_put(_evPtr);
-            return true;
-        }
-
-        public void Dispose()
-        {
-            if (_evPtr != IntPtr.Zero)
-            {
-                gdk_event_free(_evPtr);
-            }
         }
     }
 
@@ -733,5 +703,35 @@ internal abstract class GtkWebViewAdapter : IWebViewAdapterWithFocus, IGtkWebVie
             Version: version?.ToString(),
             UnavailableReason: version is not null ? null : "WebKitGtk library is not installed. Install webkit2gtk 4.0+ package.",
             SupportedScenarios: version is not null ? scenarios : WebViewEmbeddingScenario.None);
+    }
+    
+    protected readonly unsafe ref struct EventSendState : IDisposable
+    {
+        private readonly IntPtr _evPtr;
+
+        public EventSendState(GdkEventType eventType, IntPtr handle)
+        {
+            _evPtr = gdk_event_new(eventType);
+            var ev = (GdkEvent*)_evPtr.ToPointer();
+            ev->any.window = gtk_widget_get_window(handle); // gdk window
+            ev->any.send_event = 1;
+            g_object_ref(ev->any.window);
+        }
+
+        public GdkEvent* Event => (GdkEvent*)_evPtr.ToPointer();
+
+        public bool Send()
+        {
+            gdk_event_put(_evPtr);
+            return true;
+        }
+
+        public void Dispose()
+        {
+            if (_evPtr != IntPtr.Zero)
+            {
+                gdk_event_free(_evPtr);
+            }
+        }
     }
 }

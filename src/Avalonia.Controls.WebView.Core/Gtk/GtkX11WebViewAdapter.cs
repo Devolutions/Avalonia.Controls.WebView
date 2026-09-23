@@ -46,6 +46,8 @@ internal sealed class GtkX11WebViewAdapter : GtkWebViewAdapter, IPlatformHandle
         _buttonPressSignal = new GtkSignal(WebViewHandle, "button-press-event", s_buttonPressCallback, this);
     }
 
+    protected override IntPtr ToplevelHandle => _windowHandle;
+    
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static unsafe int ButtonPressCallback(IntPtr widget, GdkEvent* gdkEvent, IntPtr data)
     {
@@ -72,9 +74,7 @@ internal sealed class GtkX11WebViewAdapter : GtkWebViewAdapter, IPlatformHandle
 
         return Task.FromResult(builder);
     }
-
-    protected override IntPtr ToplevelHandle => _windowHandle;
-
+    
     public override void SetParent(IPlatformHandle parent)
     {
         if (parent.HandleDescriptor != "XID")
