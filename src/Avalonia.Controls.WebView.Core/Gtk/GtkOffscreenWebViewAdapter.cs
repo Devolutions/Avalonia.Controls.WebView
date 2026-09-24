@@ -19,6 +19,7 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
         new((delegate* unmanaged[Cdecl]<IntPtr, IntPtr*, IntPtr, int>)&DrawCallback);
 
     private readonly bool _experimentalOffscreen;
+    private readonly bool _usesHostWindow;
     private IntPtr _windowHandle;
     private PixelSize _sizeRequest;
     private GtkSignal? _drawSignal;
@@ -73,7 +74,9 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
             IntPtr pixbuf;
             if (_experimentalOffscreen)
             {
-                pixbuf = gtk_offscreen_window_get_pixbuf(_windowHandle);
+                pixbuf = _usesHostWindow
+                    ? GtkOffscreenHostWindow.GetPixbuf(_windowHandle)
+                    : gtk_offscreen_window_get_pixbuf(_windowHandle);
             }
             else
             {
