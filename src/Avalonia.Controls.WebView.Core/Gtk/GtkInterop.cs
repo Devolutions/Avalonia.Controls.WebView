@@ -14,6 +14,7 @@ internal static unsafe partial class GtkInterop
     internal const string LibGtk = "libgtk";
     internal const string LibGdk = "libgdk";
     internal const string LibSoup = "libsoup";
+    internal const string LibCairo = "libcairo";
 
     public const int True = 1;
     public const int False = 0;
@@ -345,6 +346,37 @@ internal static unsafe partial class GtkInterop
 
     [DllImport(LibGdk)]
     internal static extern IntPtr gdk_display_get_default();
+    // Reading the offscreen surface straight out of cairo avoids allocating and converting a whole GdkPixbuf per frame.
+    [DllImport(LibGdk)]
+    internal static extern IntPtr gdk_offscreen_window_get_surface(IntPtr window);
+
+    [DllImport(LibCairo)]
+    internal static extern void cairo_surface_flush(IntPtr surface);
+
+    [DllImport(LibCairo)]
+    internal static extern IntPtr cairo_surface_map_to_image(IntPtr surface, IntPtr extents);
+
+    [DllImport(LibCairo)]
+    internal static extern void cairo_surface_unmap_image(IntPtr surface, IntPtr image);
+
+    [DllImport(LibCairo)]
+    internal static extern int cairo_surface_get_type(IntPtr surface);
+
+    [DllImport(LibCairo)]
+    internal static extern int cairo_image_surface_get_format(IntPtr surface);
+
+    [DllImport(LibCairo)]
+    internal static extern IntPtr cairo_image_surface_get_data(IntPtr surface);
+
+    [DllImport(LibCairo)]
+    internal static extern int cairo_image_surface_get_width(IntPtr surface);
+
+    [DllImport(LibCairo)]
+    internal static extern int cairo_image_surface_get_height(IntPtr surface);
+
+    [DllImport(LibCairo)]
+    internal static extern int cairo_image_surface_get_stride(IntPtr surface);
+
     [DllImport(LibGdk)]
     internal static extern IntPtr gdk_display_get_default_seat(IntPtr display);
     [DllImport(LibGdk)]

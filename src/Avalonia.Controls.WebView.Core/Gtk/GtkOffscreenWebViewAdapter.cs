@@ -39,8 +39,14 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
 
     public event Action? DrawRequested;
 
-    public PixelFormat BufferPixelFormat => PixelFormats.Rgba8888;
-    public AlphaFormat BufferAlphaFormat => AlphaFormat.Unpremul;
+    // Offscreen rendering lands in a cairo ARGB32 surface, which is premultiplied BGRA in memory on a little-endian
+    // machine. Advertising that verbatim turns the per-frame conversion into a straight copy; the windowed path still
+    // comes through a GdkPixbuf, which is unpremultiplied RGBA.
+    public PixelFormat BufferPixelFormat =>
+        _experimentalOffscreen ? PixelFormats.Bgra8888 : PixelFormats.Rgba8888;
+
+    public AlphaFormat BufferAlphaFormat =>
+        _experimentalOffscreen ? AlphaFormat.Premul : AlphaFormat.Unpremul;
 
     public Task UpdateWriteableBitmap(PixelSize _, FrameChainBase<WriteableBitmap, PixelSize>.IProducer producer)
     {
@@ -52,6 +58,12 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
         return RunOnGlibThreadAsync(() =>
         {
             if (_windowHandle == IntPtr.Zero)
+            {
+                return;
+            }
+
+
+            if (_experimentalOffscreen && TryCopyFromSurface(producer))
             {
                 return;
             }
@@ -134,6 +146,79 @@ internal abstract unsafe class GtkOffscreenWebViewAdapter : GtkWebViewAdapter,
                 }
             }
         });
+    }
+
+
+    private const int CairoSurfaceTypeImage = 0;
+    private const int CairoFormatArgb32 = 0;
+
+    /// <summary>
+    /// Copies the offscreen surface into the next frame without going through a GdkPixbuf, which would allocate and
+    /// convert a full-size image on every frame. Returns false when the surface is not the layout we expect, leaving
+    /// the caller to fall back.
+    /// </summary>
+    private bool TryCopyFromSurface(FrameChainBase<WriteableBitmap, PixelSize>.IProducer producer)
+    {
+        var gdkWindow = gtk_widget_get_window(_windowHandle);
+        var surface = gdkWindow == IntPtr.Zero ? IntPtr.Zero : gdk_offscreen_window_get_surface(gdkWindow);
+
+        if (gdkWindow == IntPtr.Zero || surface == IntPtr.Zero)
+            return false;
+
+        cairo_surface_flush(surface);
+
+        // An offscreen window is an image surface on the wayland backend, but an X pixmap on x11, where the pixels
+        // live on the server. Mapping gives a readable image view of either, and cairo can use shared memory for the
+        // x11 case instead of a full round trip.
+        var mapped = cairo_surface_get_type(surface) == CairoSurfaceTypeImage
+            ? IntPtr.Zero
+            : cairo_surface_map_to_image(surface, IntPtr.Zero);
+        var image = mapped == IntPtr.Zero ? surface : mapped;
+
+        try
+        {
+            if (cairo_image_surface_get_format(image) != CairoFormatArgb32)
+                return false;
+
+            var source = cairo_image_surface_get_data(image);
+            var width = cairo_image_surface_get_width(image);
+            var height = cairo_image_surface_get_height(image);
+            var stride = cairo_image_surface_get_stride(image);
+            if (source == IntPtr.Zero || width <= 0 || height <= 0 || stride <= 0)
+                return false;
+
+            using (producer.GetNextFrame(new PixelSize(width, height), out var frame))
+            {
+                using var buf = frame.Lock();
+                var dstStride = buf.RowBytes;
+
+                if (stride == dstStride)
+                {
+                    Buffer.MemoryCopy((void*)source, (void*)buf.Address,
+                        (long)height * dstStride, (long)height * stride);
+                }
+                else
+                {
+                    var copyBytes = Math.Min(stride, dstStride);
+                    for (var y = 0; y < height; y++)
+                    {
+                        Buffer.MemoryCopy(
+                            (byte*)source + (long)y * stride,
+                            (byte*)buf.Address + (long)y * dstStride,
+                            dstStride, copyBytes);
+                    }
+                }
+            }
+
+            return true;
+        }
+        finally
+        {
+            if (mapped != IntPtr.Zero)
+            {
+                cairo_surface_unmap_image(surface, mapped);
+            }
+        }
     }
 
     public override void SizeChanged(PixelSize containerSize)

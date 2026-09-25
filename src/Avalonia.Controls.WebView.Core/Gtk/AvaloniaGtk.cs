@@ -21,6 +21,7 @@ internal static partial class AvaloniaGtk
         {
             [GtkInterop.LibGtk] = ["libgtk-3.so.0", "libgtk-3.so"],
             [GtkInterop.LibGdk] = ["libgdk-3.so.0", "libgdk-3.so"],
+            [GtkInterop.LibCairo] = ["libcairo.so.2", "libcairo.so"],
             [GtkInterop.LibGLib] = ["libglib-2.0.so.0", "libglib-2.0.so"],
             [GtkInterop.LibGObject] = ["libgobject-2.0.so.0", "libgobject-2.0.so"],
             [GtkInterop.LibGio] = ["libgio-2.0.so.0", "libgio-2.0.so"],
