@@ -210,14 +210,27 @@ internal abstract class GtkWebViewAdapter : IWebViewAdapterWithFocus, IGtkWebVie
         if (toplevel == IntPtr.Zero || gtk_widget_get_window(toplevel) == IntPtr.Zero)
             return;
 
-        if (ToplevelIsOffscreen && IsX11Display())
+        // Activating an offscreen toplevel on x11 queries the pointer against a window that has no X counterpart. The
+        // activation still lands; only the resulting BadWindow needs swallowing, and it is fatal untrapped.
+        var trapped = ToplevelIsOffscreen && IsX11Display() ? gdk_display_get_default() : IntPtr.Zero;
+        if (trapped != IntPtr.Zero)
         {
-            return;
+            gdk_x11_display_error_trap_push(trapped);
         }
 
-        using var state = new EventSendState(GdkEventType.GDK_FOCUS_CHANGE, toplevel);
-        state.Event->focus_change.@in = (short)(focusIn ? 1 : 0);
-        gtk_widget_send_focus_change(toplevel, new IntPtr(state.Event));
+        try
+        {
+            using var state = new EventSendState(GdkEventType.GDK_FOCUS_CHANGE, toplevel);
+            state.Event->focus_change.@in = (short)(focusIn ? 1 : 0);
+            gtk_widget_send_focus_change(toplevel, new IntPtr(state.Event));
+        }
+        finally
+        {
+            if (trapped != IntPtr.Zero)
+            {
+                gdk_x11_display_error_trap_pop(trapped);
+            }
+        }
     }
 
     private static bool IsX11Display()
