@@ -428,6 +428,85 @@ internal static unsafe partial class GtkInterop
     internal static extern IntPtr webkit_uri_request_get_http_headers(IntPtr request);
 
     [DllImport(LibWebKit)]
+    internal static extern uint webkit_context_menu_get_n_items(IntPtr menu);
+
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_context_menu_get_item_at_position(IntPtr menu, uint position);
+
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_context_menu_item_get_title(IntPtr item);
+
+    [DllImport(LibWebKit)]
+    internal static extern bool webkit_context_menu_item_is_separator(IntPtr item);
+
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_context_menu_item_get_submenu(IntPtr item);
+
+    // The item's action and its target stay owned by the menu, so both are only valid while it is alive.
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_context_menu_item_get_gaction(IntPtr item);
+
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_context_menu_item_get_gaction_target(IntPtr item);
+
+    [DllImport(LibWebKit)]
+    internal static extern uint webkit_context_menu_item_get_stock_action(IntPtr item);
+
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_context_menu_action_get_type();
+
+    [DllImport(LibGObject)]
+    internal static extern IntPtr g_type_class_ref(IntPtr type);
+
+    [DllImport(LibGObject)]
+    internal static extern void g_type_class_unref(IntPtr klass);
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct GEnumClass
+    {
+        public IntPtr g_type_class;
+        public int minimum;
+        public int maximum;
+        public uint n_values;
+        public IntPtr values;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct GEnumValue
+    {
+        public int value;
+        public IntPtr value_name;
+        public IntPtr value_nick;
+    }
+
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_hit_test_result_get_link_uri(IntPtr hitTestResult);
+
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_hit_test_result_get_image_uri(IntPtr hitTestResult);
+
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_hit_test_result_get_media_uri(IntPtr hitTestResult);
+
+    [LibraryImport(LibWebKit, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial void webkit_web_view_execute_editing_command(IntPtr webView, string command);
+
+    [LibraryImport(LibWebKit, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial void webkit_web_context_download_uri(IntPtr context, string uri);
+
+    [DllImport(LibWebKit)]
+    internal static extern IntPtr webkit_web_view_get_inspector(IntPtr webView);
+
+    [DllImport(LibWebKit)]
+    internal static extern void webkit_web_inspector_show(IntPtr inspector);
+
+    [DllImport(LibGio)]
+    internal static extern void g_action_activate(IntPtr action, IntPtr parameter);
+
+    [DllImport(LibGio)]
+    internal static extern bool g_action_get_enabled(IntPtr action);
+
+    [DllImport(LibWebKit)]
     internal static extern void webkit_option_menu_activate_item(IntPtr menu, uint index);
     [DllImport(LibWebKit)]
     internal static extern void webkit_option_menu_close(IntPtr menu);

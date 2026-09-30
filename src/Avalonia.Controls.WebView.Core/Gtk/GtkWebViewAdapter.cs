@@ -193,6 +193,14 @@ internal abstract class GtkWebViewAdapter : IWebViewAdapterWithFocus, IGtkWebVie
 
     public void ResignFocus() { }
 
+    protected void RaiseNewWindowRequested(Uri request)
+    {
+        if (NewWindowRequested is { } handler)
+        {
+            WebViewDispatcher.Invoke(() => handler.Invoke(this, new WebViewNewWindowRequestedEventArgs { Request = request }));
+        }
+    }
+
     public bool GoBack()
     {
         if (!CanGoBack)
